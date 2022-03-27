@@ -1,104 +1,67 @@
 // Copyright 2021 NNTU-CS
-#include <string>
 #include <map>
+#include <string>
+
 #include "tstack.h"
 
-int priority(char ch) {
-  switch (ch) {
-    case '(':
-      return 0;
-    case ')':
-      return 1;
-    case '+':
-      return 2;
-    case '-':
-      return 2;
-    case '*':
-      return 3;
-    case '/':
-      return 3;
-  }
-  return -1;
-}
-
-bool isDigit(std::string pref) {
-  for (size_t i = 0; i < pref.size(); ++i) {
-    if (pref[i] < '0' || pref[i] > '9')
-      return false;
-  }
-  return true;
-}
-
 std::string infx2pstfx(std::string inf) {
-  TStack <char, 100> itstack;
-  std::string res;
-  for (size_t i = 0; i < inf.size(); i++) {
-    if ((priority(inf[i]) == -1) && (priority(inf[i]) != 1)) {
-      if (!res.empty() && priority(inf[i - 1]) != -1) {
-        res.push_back(' ');
-      }
-      res.push_back(inf[i]);
-    } else if ((priority(inf[i]) > priority(itstack.get()))
-               || (itstack.isEmpty()) || (priority(inf[i]) == 0)) {
-      itstack.push(inf[i]);
-    } else {
-      if (priority(inf[i]) == 1) {
-        while (priority(itstack.get()) != 0) {
-          res.push_back(' ');
-          res.push_back(itstack.get());
-          itstack.pop();
+  TStack<char, 100> result;
+  TStack<char, 100> stack;
+  int currentNumber = 0;
+  for (int i = 0; i < inf.size(); i++) switch (inf[i]) {
+      case '+':
+      case '-':
+        if (stack.get() == '/' || stack.get() == '*')
+          result.push(stack.getAndPop());
+      case '*':
+      case '/':
+      case '(':
+        stack.push(inf[i]);
+        break;
+      case ')':
+        while (stack.get() != '(') result.push(stack.getAndPop());
+        stack.pop();
+        while (!stack.isEmpty()) {
+          if (stack.get() == '(' || stack.get() == '+' || stack.get() == '-')
+            break;
+          result.push(stack.getAndPop());
         }
-        itstack.pop();
-      } else {
-        while (priority(itstack.get()) >= priority(inf[i])) {
-          res.push_back(' ');
-          res.push_back(itstack.get());
-          itstack.pop();
-        }
-        itstack.push(inf[i]);
-      }
+        break;
+      default:
+        result.push(inf[i]);
+        break;
     }
-  }
-  while (!itstack.isEmpty()) {
-    res.push_back(' ');
-    if (priority(itstack.get()) != 0) {
-      res.push_back(itstack.get());
-    }
-    itstack.pop();
-  }
-  return res;
+  while (!stack.isEmpty()) result.push(stack.getAndPop());
+  std::string resString = "";
+  while (!result.isEmpty())
+    resString =
+        result.getAndPop() + (resString.size() == 0 ? "" : " " + resString);
+  printf("\n123: %s\n\n", resString.c_str());
+  return resString;
 }
 
-int eval(std::string post) {
-  TStack <int, 100> ptstack;
-  std::string temp;
-  int oper1 = 0;
-  int oper2 = 0;
-  size_t start = 0, end = 0;
-  for (size_t i = 0; i < post.size(); ++i) {
-    if (post[i] == ' ' || i == post.size()-1) {
-      end = i;
-      if (i == post.size() - 1)
-        end++;
-      temp = post.substr(start, end - start);
-      start = end + 1;
-      if (isDigit(temp)) {
-        ptstack.push(std::stoi(temp));
-      } else {
-        oper2 = ptstack.get();
-        ptstack.pop();
-        oper1 = ptstack.get();
-        ptstack.pop();
-        if (temp == "+")
-          ptstack.push(oper1 + oper2);
-        else if (temp == "-")
-          ptstack.push(oper1 - oper2);
-        else if (temp == "*")
-          ptstack.push(oper1 * oper2);
-        else if (temp == "/")
-          ptstack.push(oper1 / oper2);
+int eval(std::string pref) {
+  TStack<int, 100> stack;
+  for (int i = 0; i < pref.size(); i++) {
+    if (pref[i] >= '0') stack.push(pref[i] - '0');
+    switch (pref[i]) {
+      case '+':
+        stack.push(stack.getAndPop() + stack.getAndPop());
+        break;
+      case '-': {
+        int tmp = stack.getAndPop();
+        stack.push(stack.getAndPop() - tmp);
+        break;
+      }
+      case '*':
+        stack.push(stack.getAndPop() * stack.getAndPop());
+        break;
+      case '/': {
+        int tmp = stack.getAndPop();
+        stack.push(stack.getAndPop() / tmp);
+        break;
       }
     }
   }
-  return ptstack.get();
+  return stack.get();
 }
